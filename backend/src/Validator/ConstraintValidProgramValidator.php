@@ -12,26 +12,37 @@ use Symfony\Component\Validator\Exception\UnexpectedValueException;
 
 final class ConstraintValidProgramValidator extends ConstraintValidator
 {
-	public function __construct()
-	{
-	}
-
 	public function validate($value, Constraint $constraint)
-	{
-		if (!$constraint instanceof ConstraintValidProgram) {
-			throw new UnexpectedTypeException($constraint, ConstraintValidProgram::class);
-		}
+	 {
+        if (!$constraint instanceof ConstraintValidProgram) {
+            throw new UnexpectedTypeException($constraint, ConstraintValidProgram::class);
+        }
 
-		if (!$value instanceof Event) {
-			throw new UnexpectedValueException($value, Event::class);
-		}
+        if (!$value instanceof Event) {
+            throw new UnexpectedValueException($value, Event::class);
+        }
 
-		// TODO: Ensure no overlapping speech times.
-		// At any given moment during the event, only one speech should be occurring.
-		// If overlaps are detected, add the following violation to the context 
-		// to display an appropriate error message to the API consumer.
-		$this->context
-			->buildViolation($constraint->overlappingSpeechesMessage)
-			->addViolation();
-	}
+        // Ensure no overlapping speech times
+        $speeches = $value->getProgram();
+        $times = [];
+
+        foreach ($speeches as $speech) {
+            $startTime = $speech->getStartTime();
+            $endTime = $speech->getEndTime();
+
+            foreach ($times as $time) {
+                if (($startTime >= $time['start'] && $startTime < $time['end']) ||
+                    ($endTime > $time['start'] && $endTime <= $time['end']) ||
+                    ($startTime <= $time['start'] && $endTime >= $time['end'])) {
+                    $this->context
+                        ->buildViolation($constraint->overlappingSpeechesMessage)
+                        ->atPath('program')
+                        ->addViolation();
+                    return;
+                }
+            }
+
+            $times[] = ['start' => $startTime, 'end' => $endTime];
+        }
+    }
 }

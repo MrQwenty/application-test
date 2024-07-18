@@ -88,20 +88,26 @@ final class EventResolver implements ResolverInterface
 
     private function resolveParticipants(Event $event, ArgumentInterface $args): array
     {
-        $queryString = $args['queryString'];
-        // TODO: 
-        // If queryString is provided, filter participants by it 
-        // and return all participants that contain the query string.
-        // The search should be case-insensitive.
-        // If the query string is not provided, return all participants.
-        return $event->getParticipants();
+        $queryString = $args['queryString'] ?? null;
+        $participants = $event->getParticipants();
+
+        if ($queryString) {
+            $queryString = strtolower($queryString);
+            return array_filter($participants, fn($participant) => stripos($participant->getName(), $queryString) !== false);
+        }
+
+        return $participants;
     }
 
     private function resolveProgram(Event $event): Collection
     {
-        // TODO:
-        // Event::program is a collection of Speech objects.
-        // Return the event's program with the speeches sorted by startTime.
-        return $event->getProgram();
+        $program = $event->getProgram();
+        $iterator = $program->getIterator();
+
+        $iterator->uasort(function ($a, $b) {
+            return ($a->getStartTime() < $b->getStartTime()) ? -1 : 1;
+        });
+
+        return new ArrayCollection(iterator_to_array($iterator));
     }
 }

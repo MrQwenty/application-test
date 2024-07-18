@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 export default class Utility {
 
     static debounce(debouncedCallback: (...args: any[]) => any, delay: number = 500): (...args: any[]) => void {
@@ -19,3 +21,7 @@ export default class Utility {
         return hashMap;
     }
 }
+
+export const formatTime = (time: string): string => {
+    return dayjs(time).format('HH:mm');
+};
